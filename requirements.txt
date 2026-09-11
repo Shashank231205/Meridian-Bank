@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# Meridian Bank — runtime dependencies
+#
+# This list is deliberately minimal: pandas and numpy, nothing else.
+#
+# Rationale. Statistics (normal/t/chi-squared CDFs, Welch t-tests, Wilson
+# intervals, Benjamini-Hochberg) and ML (IRLS logistic regression with
+# coefficient p-values, k-means++) are implemented from scratch under
+# src/meridian/stats/ and src/meridian/ml/ rather than pulled from scipy and
+# scikit-learn. Two reasons:
+#
+#   1. Portability. Every added dependency is another chance the pipeline
+#      fails to install on a reviewer's machine. A two-package requirement
+#      installs almost anywhere.
+#   2. Demonstrability. The estimators are the analytical core of the project;
+#      writing them out makes the method inspectable instead of opaque. Each
+#      one is validated against textbook worked examples in tests/test_stats.py.
+#
+# Install:  py -m pip install -r requirements.txt
+# If pip reports an SSL verification failure, see scripts/setup.ps1, which
+# passes the required --trusted-host flags.
+# ---------------------------------------------------------------------------
+
+pandas>=2.0,<3.0
+numpy>=1.24,<3.0
