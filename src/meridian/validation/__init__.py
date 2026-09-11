@@ -8,6 +8,7 @@ from .anomaly import (
     iqr_outliers,
     mad_outliers,
     round_number_bias,
+    standardise_rate,
 )
 from .engine import ValidationReport, validate, validate_many
 from .profiling import ColumnProfile, correlation_pairs, profile_column, profile_table
@@ -21,6 +22,7 @@ __all__ = [
     "ColumnProfile", "profile_column", "profile_table", "correlation_pairs",
     "BenfordResult", "benford_test", "mad_outliers", "iqr_outliers",
     "round_number_bias", "duplicate_clusters", "detect_structural_break",
+    "standardise_rate",
     "render_html", "write_report",
     "SUITES", "validate_ingested", "load_provenance",
 ]

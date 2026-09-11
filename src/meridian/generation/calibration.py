@@ -286,6 +286,9 @@ class CalibrationProfile:
     peer_envelopes: dict[str, PeerEnvelope] = field(default_factory=dict)
 
     # Context
+    # Equity-to-assets of the real peer panel. ROE is ROA over this, so it must
+    # come from the same institutions the ROE envelope is built from.
+    peer_equity_ratio: float = 0.0
     branch_density_per_100k: float = 0.0
     account_ownership_pct: float = 0.0
     gdp_growth_pct: float = 0.0
@@ -312,6 +315,7 @@ class CalibrationProfile:
             "base_conversion_rate": round(self.base_conversion_rate, 6),
             "elasticities": {k: v.to_dict() for k, v in self.elasticities.items()},
             "peer_envelopes": {k: v.to_dict() for k, v in self.peer_envelopes.items()},
+            "peer_equity_ratio": round(self.peer_equity_ratio, 5),
             "macro_context": {
                 "branch_density_per_100k": round(self.branch_density_per_100k, 3),
                 "account_ownership_pct": round(self.account_ownership_pct, 3),
@@ -467,6 +471,7 @@ def build_profile(settings: Settings | None = None) -> CalibrationProfile:
         ltd = _loan_to_deposit_envelope(fdic_panel)
         if ltd is not None:
             profile.peer_envelopes["LOAN_TO_DEPOSIT"] = ltd
+        profile.peer_equity_ratio = _peer_equity_ratio(fdic_panel) or 0.0
 
     # --- context --------------------------------------------------------
     profile.branch_density_per_100k = _latest(wb, "FB.CBK.BRCH.P5") or 0.0
@@ -627,3 +632,14 @@ def _loan_to_deposit_envelope(panel: pd.DataFrame) -> PeerEnvelope | None:
         median=float(ratio.median()), q3=float(ratio.quantile(0.75)),
         n_institutions=int(len(ratio)),
     )
+
+
+def _peer_equity_ratio(panel: pd.DataFrame) -> float | None:
+    """Median equity-to-assets across the real peer panel, as a fraction."""
+    if not {"EQ", "ASSET"} <= set(panel.columns):
+        return None
+    latest = _latest_per_institution(panel)
+    eq = pd.to_numeric(latest["EQ"], errors="coerce")
+    assets = pd.to_numeric(latest["ASSET"], errors="coerce")
+    ratio = (eq / assets.replace(0, np.nan)).dropna()
+    return float(ratio.median()) if len(ratio) >= 5 else None
