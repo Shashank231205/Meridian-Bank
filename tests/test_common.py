@@ -171,3 +171,17 @@ class TestLiveFrankfurter:
         )
         assert r.status == 200
         assert "INR" in r.json()["rates"]
+
+
+class TestMetaSidecarPaths:
+    """Cache keys embed dotted API paths, so sidecars must append, not replace."""
+
+    def test_sidecar_appends_rather_than_replacing_the_extension(self, tmp_path: Path):
+        p = tmp_path / "api_v2_indicator_FR.INR.LEND__abc123"
+        assert http._meta_path(p).name == "api_v2_indicator_FR.INR.LEND__abc123.meta.json"
+
+    def test_dotted_sibling_keys_do_not_share_a_sidecar(self, tmp_path: Path):
+        # with_suffix() would map both onto "...indicator_FR.INR.meta.json".
+        lend = http._meta_path(tmp_path / "indicator_FR.INR.LEND__aaa")
+        dpst = http._meta_path(tmp_path / "indicator_FR.INR.DPST__bbb")
+        assert lend != dpst

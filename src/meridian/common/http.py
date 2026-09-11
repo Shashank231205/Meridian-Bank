@@ -122,6 +122,17 @@ def _cache_is_fresh(path: Path, ttl_days: int) -> bool:
     return age < timedelta(days=ttl_days)
 
 
+def _meta_path(cache_path: Path) -> Path:
+    """Sidecar path for a cache entry.
+
+    Appends rather than using ``Path.with_suffix``, which replaces everything
+    after the last dot. Cache keys embed dotted API paths (indicator codes such
+    as ``FR.INR.LEND``), so with_suffix would map every indicator under
+    ``FR.INR.*`` onto one shared sidecar and cross-contaminate their headers.
+    """
+    return cache_path.with_name(cache_path.name + ".meta.json")
+
+
 def _maybe_gunzip(body: bytes, headers: Mapping[str, str]) -> bytes:
     """Transparently decompress gzip responses.
 
@@ -141,7 +152,7 @@ def _maybe_gunzip(body: bytes, headers: Mapping[str, str]) -> bytes:
 def _read_cache(cache_path: Path, full_url: str, *, reason: str = "CACHE") -> Response:
     """Build a Response from an on-disk cache entry."""
     body = cache_path.read_bytes()
-    meta_path = cache_path.with_suffix(".meta.json")
+    meta_path = _meta_path(cache_path)
     headers: dict[str, str] = {}
     if meta_path.is_file():
         try:
@@ -192,7 +203,7 @@ def get_bytes(
             if cache_path is not None:
                 atomic_write_bytes(cache_path, body)
                 atomic_write_bytes(
-                    cache_path.with_suffix(".meta.json"),
+                    _meta_path(cache_path),
                     json.dumps({
                         "url": full_url,
                         "status": status,
